@@ -26,14 +26,14 @@ class Api extends REST_Controller
     function login_id_get()
     {
         $this->load->model('user_model');
-        $login_id=$this->uri->segment('3');
-        if(empty($login_id)){
-            if(empty($login_id) || empty($login_pwd)){
+        $app_id=$this->uri->segment('3');
+        $login_id=$this->uri->segment('4');
+	    if(empty($login_id) || empty($app_id)){
                 $this->response(array('message'=>400),400);
-            }
         }
         $user=array(
-            'login_id'=>$login_id
+            'login_id'=>$login_id,
+	        'app_id'=>$app_id
         );
         $result=$this->user_model->getUser($user);
         if($result) {
@@ -54,7 +54,7 @@ class Api extends REST_Controller
         $user['user_type'] = 1;
         $user['user_phone'] = $user['login_id'];
 
-        if(empty($user['login_id']) || empty($user['login_pwd'])){
+        if(empty($app_id) || empty($user['login_id']) || empty($user['login_pwd'])){
             $this->response(array('message'=>400),400);
         }
 
@@ -152,13 +152,15 @@ class Api extends REST_Controller
 
         $login_pwd  = $this->post('login_pwd');
         $login_id   = $this->post('login_id');
+	    $app_id	    = $this->post('app_id');
 
-        if(empty($login_id) or empty($login_pwd)){
+        if(empty($login_id) || empty($login_pwd) || empty($app_id)){
             $this->response(array('message'=>400),400);
         }
 
         $user=array(
             'login_id'  => $login_id,
+	        'app_id'	=> $app_id,
             'login_pwd' => $login_pwd
         );
 
@@ -177,6 +179,7 @@ class Api extends REST_Controller
         $this->load->model('user_model');
         $login_id   = $this->post('login_id');
         $login_pwd  = $this->post('login_pwd');
+	$app_id	    = $this->post('app_id');
         //$login_type = $this->post('login_type');
 
         if(empty($login_id) or empty($login_pwd)){
@@ -184,7 +187,8 @@ class Api extends REST_Controller
         }
 
         $user=array(
-            'login_id'=>$login_id
+            'login_id'=>$login_id,
+	    'app_id'=>$app_id
         );
 
         $res=$this->user_model->getUser($user);
@@ -478,9 +482,26 @@ class Api extends REST_Controller
         }
 
         $this->load->model('service_model');
-        $result=$this->service_model->getLatestApp(array('app_id'=>$app_id));
+        $result=$this->service_model->getLatestApp($app_id);
+
 
         if($result) {
+            $this->response(array('result'=>$result[0],'message' => 200), 200);
+        }else{
+            $this->response(array('message' => 404), 200);
+        }
+    }
+
+    public function server_get(){
+        $app_id = $this->uri->segment('3');
+        if(empty($app_id)){
+            $this->response(array('message'=>400), 200);
+        }
+
+        $this->load->model('service_model');
+        $result = $this->service_model->getServer($app_id);
+
+        if(!empty($result)) {
             $this->response(array('result'=>$result[0],'message' => 200), 200);
         }else{
             $this->response(array('message' => 404), 200);
@@ -617,6 +638,56 @@ class Api extends REST_Controller
             $this->response(array('message' => 404), 200);
         }
     }
+
+    public function deviceMac_Post(){
+        $mac  = $this->post('mac');
+        $pass = $this->post('pass');
+        $mid  = $this->post('pid');
+
+        if(empty($mid) || $pass != 'sjwMac2015' || empty($mac)){
+            $this->response(array('message'=>400), 200);
+        }
+
+        $mac_data = array(
+            'module_id'  => $mid,
+            'mac'        => $mac,
+            'addtime'    => time()
+        );
+
+        $this->load->model('device_model');
+        $check = $this->device_model->getMac(array('mac'=>$mac));
+
+        if(!empty($check)){
+            $this->response(array('message'=>501), 200);
+        }
+
+        $res = $this->device_model->addMac($mac_data);
+        if($res){
+            $this->response(array('message' => 200), 200);
+        }else{
+            $this->response(array('message'=>500), 200);
+        }
+    }
+
+    public function deviceSn_get(){
+        $this->load->model('device_model');
+        $pid=$this->uri->segment('3');
+        $sn=$this->uri->segment('4');
+        if(empty($sn) || empty($pid)){
+            $this->response(array('message'=>400),400);
+        }
+        $sn_data=array(
+            'sn'=>$sn,
+            'product_id'=>$pid
+        );
+        $result=$this->device_model->getDeviceSn($sn_data);
+        if($result) {
+            $this->response(array('message' => 200), 200);
+        }else{
+            $this->response(array('message' => 404), 200);
+        }
+    }
+
 
     //just a redis test
     public function testSpeed_get(){

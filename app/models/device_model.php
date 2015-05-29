@@ -8,6 +8,8 @@ Class Device_model extends CI_Model{
         $this->tb_device =$this->db->dbprefix('device');
         $this->tb_device_class =$this->db->dbprefix('device_class');
         $this->tb_bind =$this->db->dbprefix('relation_user_device');
+        $this->tb_mac =$this->db->dbprefix('product_mac');
+        $this->tb_sn =$this->db->dbprefix('product_sn');
         $this->load->helper('check');
     }
 
@@ -106,6 +108,25 @@ Class Device_model extends CI_Model{
                 $result = 501; //send fail
             }
         }
+        return $result;
+    }
+
+
+    public function addMac($mac_data){
+        $this->db->insert($this->tb_mac,$mac_data);
+        $result=$this->db->insert_id();
+        return $result;
+    }
+
+    public function getMac($condition){
+        $query=$this->db->get_where($this->tb_mac,$condition);
+        $result=$query->result_array();
+        return $result;
+    }
+
+    public function getDeviceSn($sn){
+        $query=$this->db->get_where($this->tb_sn,$sn);
+        $result=$query->result_array();
         return $result;
     }
 

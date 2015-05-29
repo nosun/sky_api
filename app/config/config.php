@@ -14,7 +14,7 @@
 | path to your installation.
 |
 */
-$config['base_url']	= 'http://c1.skyware.com.cn';
+$config['base_url']	= 'http://c2.skyware.com.cn';
 
 /*
 |--------------------------------------------------------------------------

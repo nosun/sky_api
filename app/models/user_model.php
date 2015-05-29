@@ -29,7 +29,7 @@ Class User_model extends CI_Model{
         $result=$query->result();
         $user['login_pwd'] = sha1($user['login_pwd'] . $result[0]->salt);
         $data=array('login_pwd'=>$user['login_pwd']);
-        $this->db->where('login_id', $user['login_id']);
+        $this->db->where('login_id', $user['login_id'])->where('app_id',$user['app_id']);
         $result=$this->db->update($this->tb_user,$data);
         return $result;
     }
