@@ -16,9 +16,9 @@ $config['url'] = "http://open.weather.com.cn/data/";
 
 $config['tb_weather_log'] = 'api_weather_log';
 $config['tb_weather_area'] = 'api_weather_area';
-$config['log_path']='www/logs/weather_cj_1.log';
-$config['fail_path']='www/logs/weather_cj_fail.log';
-$config['mysql_fail_path']='www/logs/weather_mysql_fail.log';
+$config['log_path']='/data/log/weather_cj_1.log';
+$config['fail_path']='/data/log/weather_cj_fail.log';
+$config['mysql_fail_path']='/data/log/weather_mysql_fail.log';
 $config['step'] = 2600;
 $config['safe'] = 10;
 $config['page'] = 1;

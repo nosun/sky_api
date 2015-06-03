@@ -10,6 +10,7 @@ Class Device_model extends CI_Model{
         $this->tb_bind =$this->db->dbprefix('relation_user_device');
         $this->tb_mac =$this->db->dbprefix('product_mac');
         $this->tb_sn =$this->db->dbprefix('product_sn');
+        $this->tb_product =$this->db->dbprefix('product');
         $this->load->helper('check');
     }
 
@@ -124,10 +125,20 @@ Class Device_model extends CI_Model{
         return $result;
     }
 
-    public function getDeviceSn($sn){
-        $query=$this->db->get_where($this->tb_sn,$sn);
+    public function getDeviceSn($sn,$pid){
+        $query=$this->db->where('sn',$sn)->where_in('product_id',$pid)->get($this->tb_sn);
         $result=$query->result_array();
         return $result;
+    }
+
+    public function  getPid($app_id){
+        $query = $this->db->select('product_id')->get_where($this->tb_product,array('app_id'=>$app_id));
+        $result = $query->result_array();
+        $product_id = array();
+        foreach($result as $row){
+            $product_id[] = $row['product_id'];
+        }
+        return $product_id;
     }
 
 }

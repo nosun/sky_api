@@ -13,9 +13,9 @@ include_once('function.php');
 $config['base_url'] = 'http://www.pm25.in/api/querys/';
 $config['app_key'] = 'ywZSKVxkFceeZXUZ4JBy';
 $config['point'] = 'all_cities.json';
-$config['log_path'] = 'www/logs/pm.log';
-$config['fail_path'] = 'www/logs/pm_fail.log';
-$config['mysql_fail_path'] = 'www/logs/pm_mysql_fail.log';
+$config['log_path'] = '/data/log/pm.log';
+$config['fail_path'] = '/data/log/pm_fail.log';
+$config['mysql_fail_path'] = '/data/log/pm_mysql_fail.log';
 $config['tb_air_log'] = 'api_air_log';
 
 $url = $config['base_url'] . $config['point'] . '?token=' . $config['app_key'];

@@ -13,18 +13,18 @@ Class Service_model extends CI_Model{
 
     }
 
-    public function getLatestApp($app_id){
+    public function getLatestApp($condition){
         $this->db->select('*');
-        $query=$this->db->get_where($this->tb_app_version,array('app_id' => $app_id));
+        $query=$this->db->order_by('version_code','desc')->limit(1,0)->get_where($this->tb_app_version,$condition);
         $result=resultFilter($query->result_array());
         return $result;
     }
 
 
-    public function getServer($app_id){
-        $this->db->select('server_login,server_api');
+    public function getHost($app_id){
+        $this->db->select('server_login,server_api,server_mq');
         $query=$this->db->get_where($this->tb_app,array('app_id' => $app_id));
-        $result=$query->result_array();
+        $result=resultFilter($query->result_array());
         return $result;
     }
 

@@ -54,19 +54,26 @@ class Api extends REST_Controller
         $user['user_type'] = 1;
         $user['user_phone'] = $user['login_id'];
 
-        if(empty($app_id) || empty($user['login_id']) || empty($user['login_pwd'])){
+        if(empty($user['app_id']) || empty($user['login_id']) || empty($user['login_pwd'])){
             $this->response(array('message'=>400),400);
         }
 
-        $result=$this->user_model->addUser($user);
+        $check = $this->user_model->getUser(array('login_id'=>$user['login_id'],'app_id'=>$user['app_id']));
 
-        if($result) {
-            $message = array('login_id' => $this->post('login_id'), 'message' => 200);
-            $this->response($message, 200);
+        if($check){
+            $this->response(array('message'=>404),200);
         }else{
-            $message = array('login_id' => $this->post('login_id'), 'message' => 500);
-            $this->response($message, 200);
+            $result=$this->user_model->addUser($user);
+
+            if($result) {
+                $message = array('login_id' => $this->post('login_id'), 'message' => 200);
+                $this->response($message, 200);
+            }else{
+                $message = array('login_id' => $this->post('login_id'), 'message' => 500);
+                $this->response($message, 200);
+            }
         }
+
     }
 
     //获取用户信息 需要登录才能获取用户信息，否则返回403
@@ -482,7 +489,7 @@ class Api extends REST_Controller
         }
 
         $this->load->model('service_model');
-        $result=$this->service_model->getLatestApp($app_id);
+        $result=$this->service_model->getLatestApp(array('app_id'=>$app_id));
 
 
         if($result) {
@@ -492,14 +499,14 @@ class Api extends REST_Controller
         }
     }
 
-    public function server_get(){
+    public function appHost_get(){
         $app_id = $this->uri->segment('3');
         if(empty($app_id)){
             $this->response(array('message'=>400), 200);
         }
 
         $this->load->model('service_model');
-        $result = $this->service_model->getServer($app_id);
+        $result = $this->service_model->getHost($app_id);
 
         if(!empty($result)) {
             $this->response(array('result'=>$result[0],'message' => 200), 200);
@@ -671,16 +678,15 @@ class Api extends REST_Controller
 
     public function deviceSn_get(){
         $this->load->model('device_model');
-        $pid=$this->uri->segment('3');
+        $app_id = $this->uri->segment('3');
         $sn=$this->uri->segment('4');
-        if(empty($sn) || empty($pid)){
+
+        if(empty($sn) || empty($app_id)){
             $this->response(array('message'=>400),400);
         }
-        $sn_data=array(
-            'sn'=>$sn,
-            'product_id'=>$pid
-        );
-        $result=$this->device_model->getDeviceSn($sn_data);
+
+        $pid = $this->device_model->getPid($app_id);
+        $result=$this->device_model->getDeviceSn($sn, $pid);
         if($result) {
             $this->response(array('message' => 200), 200);
         }else{
