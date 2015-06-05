@@ -29,7 +29,7 @@ class Api extends REST_Controller
         $app_id=$this->uri->segment('3');
         $login_id=$this->uri->segment('4');
 	    if(empty($login_id) || empty($app_id)){
-                $this->response(array('message'=>400),400);
+                $this->response(array('message'=>400),200);
         }
         $user=array(
             'login_id'=>$login_id,
@@ -55,7 +55,7 @@ class Api extends REST_Controller
         $user['user_phone'] = $user['login_id'];
 
         if(empty($user['app_id']) || empty($user['login_id']) || empty($user['login_pwd'])){
-            $this->response(array('message'=>400),400);
+            $this->response(array('message'=>400),200);
         }
 
         $check = $this->user_model->getUser(array('login_id'=>$user['login_id'],'app_id'=>$user['app_id']));
@@ -106,7 +106,7 @@ class Api extends REST_Controller
         if ($this->put('user_prefer')) $user['user_prefer']=$this->put('user_prefer');
 
         if (empty($user_id) or empty($user)){
-            $this->response(array('message'=>400),400);
+            $this->response(array('message'=>400),200);
         }
 
         $this->load->model('user_model');
@@ -121,29 +121,27 @@ class Api extends REST_Controller
 
     //修改密码
     function  passwd_put(){
-        $user = $this->getUserByToken($this->token);
+        $user       = $this->getUserByToken($this->token);
         $passwd     = $this->put('login_pwd');
         $passwd_old = $this->put('login_pwd_old');
-        $login_id   = $user['login_id'];
+        $user_id   = $user['user_id'];
 
 
-        if(empty($login_id) or empty($passwd) or empty($passwd_old)){
-            $this->response(array('message'=>400),400);
+        if(empty($user_id) or empty($passwd) or empty($passwd_old)){
+            $this->response(array('message'=>400),200);
         }
 
         $user=array(
-            'login_id' => $login_id,
-            'login_pwd'=> $passwd_old
+            'user_id' => $user_id
         );
 
         $this->load->model('user_model');
-        $res = $this->user_model->getToken($user);
+        $res = $this->user_model->getToken($user,$passwd_old);
         if($res){
             $user=array(
-                'login_id' => $login_id,
-                'login_pwd'=> $passwd
+                'user_id' => $user_id
             );
-            $result=$this->user_model->updatePasswd($user);
+            $result=$this->user_model->updatePasswd($user,$passwd);
             if($result){
                 $this->response(array('message' => 200), 200);
             }else{
@@ -157,22 +155,21 @@ class Api extends REST_Controller
     //找回密码
     function  passwd_post(){
 
-        $login_pwd  = $this->post('login_pwd');
-        $login_id   = $this->post('login_id');
-	    $app_id	    = $this->post('app_id');
+        $passwd   = $this->post('login_pwd');
+        $login_id = $this->post('login_id');
+	    $app_id	  = $this->post('app_id');
 
-        if(empty($login_id) || empty($login_pwd) || empty($app_id)){
-            $this->response(array('message'=>400),400);
+        if(empty($login_id) || empty($passwd) || empty($app_id)){
+            $this->response(array('message'=>400), 200);
         }
 
         $user=array(
             'login_id'  => $login_id,
-	        'app_id'	=> $app_id,
-            'login_pwd' => $login_pwd
+	        'app_id'	=> $app_id
         );
 
         $this->load->model('user_model');
-        $result=$this->user_model->updatePasswd($user);
+        $result=$this->user_model->updatePasswd($user,$passwd);
 
         if($result){
             $this->response(array('message' => 200), 200);
@@ -186,22 +183,22 @@ class Api extends REST_Controller
         $this->load->model('user_model');
         $login_id   = $this->post('login_id');
         $login_pwd  = $this->post('login_pwd');
-	$app_id	    = $this->post('app_id');
+	    $app_id	    = $this->post('app_id');
         //$login_type = $this->post('login_type');
 
-        if(empty($login_id) or empty($login_pwd)){
+        if(empty($login_id) or empty($login_pwd) or empty($app_id)){
             $this->response(array('message'=>400),200);
         }
 
         $user=array(
             'login_id'=>$login_id,
-	    'app_id'=>$app_id
+	        'app_id'=>$app_id
         );
 
         $res=$this->user_model->getUser($user);
 
         if($res){
-            $result= $this->user_model->getToken($this->post());
+            $result= $this->user_model->getToken($user,$login_pwd);
             if($result) {
                 $this->response(array('token'=>$result,'message' => 200), 200);
             }else{
@@ -682,12 +679,17 @@ class Api extends REST_Controller
         $sn=$this->uri->segment('4');
 
         if(empty($sn) || empty($app_id)){
-            $this->response(array('message'=>400),400);
+            $this->response(array('message'=>400), 200);
         }
 
         $pid = $this->device_model->getPid($app_id);
+
+        if(empty($pid)){
+            $this->response(array('message' => 404), 200);
+        }
+
         $result=$this->device_model->getDeviceSn($sn, $pid);
-        if($result) {
+        if($result){
             $this->response(array('message' => 200), 200);
         }else{
             $this->response(array('message' => 404), 200);

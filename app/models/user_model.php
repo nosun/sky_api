@@ -19,18 +19,22 @@ Class User_model extends CI_Model{
     public function getUser($user) {
         $this->db->select('user_id,app_id,login_id,user_name,user_img,user_email,user_phone,notice_pm,notice_pm_value,notice_filter,user_prefer');
         $query=$this->db->get_where($this->tb_user,$user);
+
         $result=resultFilter($query->result_array());
         return $result;
     }
 
-    public function updatePasswd($user){
+    public function updatePasswd($user,$passwd){
         $this->db->select('salt');
-        $query=$this->db->get_where($this->tb_user,array('login_id' => $user['login_id']));
+        $query=$this->db->get_where($this->tb_user,$user);
         $result=$query->result();
-        $user['login_pwd'] = sha1($user['login_pwd'] . $result[0]->salt);
-        $data=array('login_pwd'=>$user['login_pwd']);
-        $this->db->where('login_id', $user['login_id'])->where('app_id',$user['app_id']);
-        $result=$this->db->update($this->tb_user,$data);
+        $passwd = sha1($passwd . $result[0]->salt);
+        if($user['user_id']){
+            $this->db->where('user_id', $user['user_id']);
+        }else{
+            $this->db->where('login_id', $user['login_id'])->where('app_id',$user['app_id']);
+        }
+        $result=$this->db->update($this->tb_user,array('login_pwd' => $passwd));
         return $result;
     }
 
@@ -40,15 +44,14 @@ Class User_model extends CI_Model{
         return $result;
     }
 
-    public function getToken($user){
+    public function getToken($user,$passwd){
         $this->load->helper('encrypt');
         $key=$this->config->item('aes_key');
-        $query=$this->db->get_where($this->tb_user,array('login_id' => $user['login_id']));
+        $query=$this->db->get_where($this->tb_user,$user);
         $result=$query->result();
-        if ($result[0]->login_pwd == sha1($user['login_pwd'] . $result[0]->salt)){
+        if ($result[0]->login_pwd == sha1($passwd . $result[0]->salt)){
             $token=encrypt($result[0]->user_id,$key);
             $data['token'] = $token;
-
             return $token;
         }else{
             return 0;
