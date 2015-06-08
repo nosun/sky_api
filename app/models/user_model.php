@@ -6,6 +6,7 @@ Class User_model extends CI_Model{
         parent::__construct();
         $this->load->database();
         $this->tb_user='user';
+	$this->tb_device_wxuser='device_wxuser';
         $this->load->helper('check');
     }
 
@@ -76,5 +77,9 @@ Class User_model extends CI_Model{
             'tpl_value' => $tpl_value
         ));
         return $response;
+    }
+
+    public function bangding($array){
+        $this->db->insert($this->tb_device_wxuser,$array);
     }
 }

@@ -24,7 +24,7 @@ function resultFilter($array){
 function paraFilter($para) {
     $para_filter = array();
     while (list ($key, $val) = each ($para)) {
-        if(isset($val) and $val !='' and $val != "0") $para_filter[$key] = $para[$key];
+        if(isset($val) and $val !='' ) $para_filter[$key] = $para[$key];
     }
     return $para_filter;
 }

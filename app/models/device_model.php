@@ -140,5 +140,7 @@ Class Device_model extends CI_Model{
         }
         return $product_id;
     }
-
+     public function getidbysn($sn){
+	return $this->db->from($this->tb_device)->where('device_sn',$sn)->order_by('device_id','desc')->limit(1)->get()->row();
+    }
 }
