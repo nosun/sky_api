@@ -4,11 +4,11 @@ class SClient {
 
     public $client;
     public function __construct(){
-        $this->client = new swoole_client(SWOOLE_TCP);;
+        $this->client = new swoole_client(SWOOLE_SOCK_UDP);;
     }
 
     public function connect(){
-        if($this->client->connect('127.0.0.1', 9999))
+        if($this->client->connect('127.0.0.1', 9501))
         {
             return 1;
         }
@@ -21,8 +21,8 @@ class SClient {
         return $result;
     }
 
-    public function close(){
-        $this->client->close();
-    }
+//    public function close(){
+//        $this->client->close();
+//    }
 
 }

@@ -104,7 +104,7 @@ Class Device_model extends CI_Model{
         }else{
             if(true == $client->send($data)){
                 $result = 200; //send ok
-                $client->close();
+                //$client->close();
             }else{
                 $result = 501; //send fail
             }

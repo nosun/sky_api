@@ -6,7 +6,7 @@ Class User_model extends CI_Model{
         parent::__construct();
         $this->load->database();
         $this->tb_user='user';
-	$this->tb_device_wxuser='device_wxuser';
+	    $this->tb_device_wxuser='device_wxuser';
         $this->load->helper('check');
     }
 
@@ -77,6 +77,10 @@ Class User_model extends CI_Model{
             'tpl_value' => $tpl_value
         ));
         return $response;
+    }
+
+    public function pipei($openid,$device_id){
+        return $this->db->from($this->tb_device_wxuser)->where('open_id',$openid)->where('device_id',$device_id)->get()->row();
     }
 
     public function bangding($array){

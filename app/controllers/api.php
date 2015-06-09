@@ -732,4 +732,30 @@ class Api extends REST_Controller
         }
     }
 
+    public function bindingwxuser_post(){
+        $sn         = $this->post('sn');
+        $openid     = $this->post('openid');
+        if(!isset($sn) || $sn == '' ){
+            $this->response(array('message'=>400),200);
+        }
+        $this->load->model('user_model');
+        $this->load->model('device_model');
+        $device = $this->device_model->getidbysn($sn);
+        if(!isset($device->device_id)){
+            $this->response(array('message'=>401),200);
+        }
+        $device_id = $device->device_id;
+        $array=array(
+            'open_id'=>$openid,
+            'device_id'=>$device_id,
+            'add_time'=>time()
+        );
+        $wxuser = $this->user_model->pipei($openid,$device_id);
+
+        if(isset($wxuser->id)){
+            $this->response(array('message'=>402),200);
+        }
+        $this->user_model->bangding($array);
+        $this->response(array('message'=>200),200);
+    }
 }
