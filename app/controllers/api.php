@@ -321,9 +321,15 @@ class Api extends REST_Controller
         $condition=array( $type => $value );
 
         $this->load->model('device_model');
+        $this->load->model('service_model');
+
         $result=$this->device_model->getDevice($condition);
         if($result) {
-            $this->response(array('result'=>$result,'message' => 200), 200);
+            $resultp=$this->device_model->getAppId($result['product_id']);
+            $resulta = $this->device_model->getApp($resultp['0']['app_id']);
+            $result['product_name'] = $resultp['0']['pid'];
+            $result['app_name'] = $resulta['0']['app_name'];
+            $this->response(array('result'=>$result,'message' => 200,'time'=>time()), 200);
         }else{
             $this->response(array('message' => 404), 200);
         }
@@ -340,7 +346,7 @@ class Api extends REST_Controller
         $result=$this->device_model->getDeviceByUser($user_id);
 
         if($result){
-            $this->response(array('result' => $result,'message' => 200), 200);
+            $this->response(array('result' => $result,'message' => 200,'time'=>time()), 200);
         }else{
             $this->response(array('message' => 404), 200);
         }
@@ -548,7 +554,27 @@ class Api extends REST_Controller
         }
     }
 
-    public function wpm_post(){
+    public function wxcmd_post(){
+        $openid   = $this->post('open_id');
+        $device_id = $this->post('device_id');
+        $cmd = $this->post('commandv');
+
+        if(empty($openid) or empty($device_id) or empty($cmd)){
+            $this->response(array('message'=>400), 200);
+        }
+        $this->load->model('device_model');
+        $this->load->model('user_model');
+        $check = $this->user_model->getWxuser($openid,$device_id);
+
+        if(!empty($check)){
+            $result = $this->device_model->pushMsgToDevice($device_id,$cmd);
+            $this->response(array('message' => $result), 200);
+        }else{
+            $this->response(array('message'=>404), 200);
+        }
+    }
+
+    public function ceshi_post(){
         $province  = $this->post('province');
         $city      = $this->post('city');
         $district  = $this->post('district');
@@ -557,25 +583,23 @@ class Api extends REST_Controller
         if(empty($province) || empty($city) ){
             $this->response(array('message'=>400),200);
         }
-
+        $array = array('省','市','特别行政区','自治区','区','县',);
         //根据城市查询pm
-        $area = $this->api_model->chaxun_air_log('round(avg(aqi)) as pm',"area_name = '$city'");
+        $area = $this->api_model->chaxun_air_log('round(avg(pm25)) as pm,round(avg(aqi)) as aqi',"area_name = '$city'");
         //上边没有查出来时，对城市名称处理后进行查询
         if(!empty($area)){
-            $array = array('省','市','特别行政区','自治区','区','县',);
             $str=str_replace($array,'',$city);
-            $area_del = $this->api_model->chaxun_air_log('round(avg(aqi)) as pm',"area_name like '$str'");
+            $area_del = $this->api_model->chaxun_air_log('round(avg(pm25)) as pm,round(avg(aqi)) as aqi',"area_name like '$str'");
         }
-
         //根据地区查询天气
         $count ='';
-        $area_sk = $this->api_model->chaxun_log_sk('temperature,wind_direct,wind_power,humidity',isset($district)?"area_name = '$district'":"area_name ='$city'");
+        $area_sk = $this->api_model->chaxun_log_sk('temperature,wind_direct,wind_power,humidity,updatetime',!empty($district)?"area_name = '$district'":"area_name ='$city'");
+
         //没查出结果，就对地区名处理后查询，并在错误地区中插入一条不重复记录
         if(!$area_sk){
-            $array = array('省','市','特别行政区','自治区','区','县',);
             $strcunty=str_replace($array,'',$district);
             $strcity=str_replace($array,'',$city);
-            $area_sk_del = $this->api_model->chaxun_log_sk('temperature,wind_direct,wind_power,humidity',isset($strcunty)?"area_name like '%$strcunty%'":"area_name like '%$strcity%'");
+            $area_sk_del = $this->api_model->chaxun_log_sk('temperature,wind_direct,wind_power,humidity,updatetime',!empty($strcunty)?"area_name like '%$strcunty%'":"area_name like '%$strcity%'");
             $count = count($area_sk_del);
 
             if(!empty($district)){
@@ -589,15 +613,17 @@ class Api extends REST_Controller
         //如果查出的记录数多于两条，再根据城市和省市名称判断，都一样就用第一条。
         if(count($area_sk) >= 2 ||  $count>= 2){
             if(isset($strcunty) || isset($strcity)){
-                $area_v2 = $this->api_model->chaxun_area_v2('area_id,area_name,district_name,province_name',isset($strcunty)?"area_name like '%$strcunty%'":"area_name like '%$strcity%'");
+                $area_v2 = $this->api_model->chaxun_area_v2('area_id,area_name,district_name,province_name',!empty($strcunty)?"area_name like '%$strcunty%'":"area_name like '%$strcity%'");
             }else{
-                $area_v2 = $this->api_model->chaxun_area_v2('area_id,area_name,district_name,province_name',isset($district)?"area_name = '$district'":"area_name = '$city'");
+                $area_v2 = $this->api_model->chaxun_area_v2('area_id,area_name,district_name,province_name',!empty($district)?"area_name = '$district'":"area_name = '$city'");
             }
 
+
             foreach($area_v2 as $v){
-                if(($v['district_name'] == $city || $v['district_name'] == str_replace($array,'',$city)) && ($v['province_name'] == $province || $v['province_name'] == str_replace($array,'',$province))){
+                if(($v['district_name'] == $city || $v['district_name'] == str_replace($array,'',$city)) &&
+                    ($v['province_name'] == $province || $v['province_name'] == str_replace($array,'',$province))) {
                     $id = $v['area_id'];
-                    $area_id = $this->api_model->chaxun_log_sk('temperature,wind_direct,wind_power,humidity',"area_id = '$id'");
+                    $area_id = $this->api_model->chaxun_log_sk('temperature,wind_direct,wind_power,humidity,updatetime',"area_id = '$id'");
                 }
             }
         }
@@ -607,18 +633,21 @@ class Api extends REST_Controller
             $data = array('temperature' =>$area_id[0]['temperature'],
                 //'wind_direct' => $area_id[0]['wind_direct'],
                 //'wind_power' => $area_id[0]['wind_power'],
+                'updatetime'=>$area_id[0]['updatetime'],
                 'humidity' => $area_id[0]['humidity']
             );
         }else if(!empty($area_sk_del)){
             $data = array('temperature' =>$area_sk_del[0]['temperature'],
                 //'wind_direct' => $area_sk_del[0]['wind_direct'],
                 //'wind_power' => $area_sk_del[0]['wind_power'],
+                'updatetime'=>$area_id[0]['updatetime'],
                 'humidity' => $area_sk_del[0]['humidity']
             );
         }else if(!empty($area_sk)){
             $data = array('temperature' =>$area_sk[0]['temperature'],
                 //'wind_direct' => $area_sk[0]['wind_direct'],
                 //'wind_power' => $area_sk[0]['wind_power'],
+                'updatetime'=>$area_id[0]['updatetime'],
                 'humidity' => $area_sk[0]['humidity']
             );
         }else{
@@ -628,8 +657,10 @@ class Api extends REST_Controller
 
         if(isset($area_del)){
             $data['pm'] = $area_del[0]['pm'];
+            $data['aqi'] = $area_del[0]['aqi'];
         }else if(isset($area)){
             $data['pm'] = $area[0]['pm'];
+            $data['aqi'] = $area[0]['aqi'];
         }else{
             //pm信息查询失败
             $this->response(array('message' => 402), 200);
@@ -734,13 +765,13 @@ class Api extends REST_Controller
 
     public function bindingwxuser_post(){
         $sn         = $this->post('sn');
-        $openid     = $this->post('openid');
+        $openid     = $this->post('open_id');
         if(!isset($sn) || $sn == '' ){
             $this->response(array('message'=>400),200);
         }
         $this->load->model('user_model');
         $this->load->model('device_model');
-        $device = $this->device_model->getidbysn($sn);
+        $device = $this->device_model->getIdBySn($sn);
         if(!isset($device->device_id)){
             $this->response(array('message'=>401),200);
         }
@@ -750,12 +781,101 @@ class Api extends REST_Controller
             'device_id'=>$device_id,
             'add_time'=>time()
         );
-        $wxuser = $this->user_model->pipei($openid,$device_id);
-
+        $wxuser = $this->user_model->getWxuser($openid,$device_id);
         if(isset($wxuser->id)){
             $this->response(array('message'=>402),200);
         }
-        $this->user_model->bangding($array);
+        $this->user_model->addBangding($array);
         $this->response(array('message'=>200),200);
+    }
+
+    public function relievewxuser_post(){
+        $sn         = $this->post('sn');
+        $openid     = $this->post('open_id');
+        $this->load->model('user_model');
+        $this->load->model('device_model');
+        $device = $this->device_model->getIdBySn($sn);
+        if(!isset($device->device_id)){
+            $this->response(array('message'=>401),200);
+        }
+        $device_id = $device->device_id;
+        $wxuser = $this->user_model->getWxuser($openid,$device_id);
+
+        if(!isset($wxuser->id)){
+            $this->response(array('message'=>402),200);
+        }
+        $this->user_model->delRelieve($wxuser->id);
+        $this->response(array('message'=>200),200);
+    }
+
+    public function wpm_post(){
+        $province  = $this->post('province');
+        $city      = $this->post('city');
+        $district  = $this->post('district');
+        $this->load->model('api_model');
+
+        if(empty($province) || empty($city) ){
+            $this->response(array('message'=>400),200);
+        }
+        $array = array('省','市','特别行政区','自治区','区','县',);
+        //根据城市查询pm
+        $area = $this->api_model->chaxun_air_log('round(avg(pm25)) as pm,round(avg(aqi)) as aqi',"area_name = '$city'");
+        //上边没有查出来时，对城市名称处理后进行查询
+        if(!empty($area)){
+            $str=str_replace($array,'',$city);
+            $area_del = $this->api_model->chaxun_air_log('round(avg(pm25)) as pm,round(avg(aqi)) as aqi',"area_name like '$str'");
+        }
+
+        //根据省市区查询area_id
+        $strprovince=str_replace($array,'',$province);
+        $strcity=str_replace($array,'',$city);
+        $strdistrict=str_replace($array,'',$district);
+        if(!empty($district)){
+            $area_v2 = $this->api_model->chaxun_area_v2('area_id,area_name,district_name,province_name',"area_name = '$strdistrict' and district_name = '$strcity' and province_name = '$strprovince'");
+        }else{
+            $area_v2 = $this->api_model->chaxun_area_v2('area_id,area_name,district_name,province_name',"area_name = '$strcity' and district_name = '$strcity' and province_name = '$strprovince'");
+        }
+
+        foreach($area_v2 as $v){
+            $id = $v['area_id'];
+            $area_id = $this->api_model->chaxun_log_sk('temperature,wind_direct,wind_power,humidity',"area_id = '$id'");
+        }
+
+        //将查出的结果放入数组中
+        if(!empty($area_id)){
+            $data = array(
+                'temperature' =>$area_id[0]['temperature'],
+                'humidity' => $area_id[0]['humidity']
+            );
+        }
+
+        else{
+            if(!empty($district)){
+                $area_error = $this->api_model->chaxun_area_error("area_name = '$district'");
+                if(empty($area_error)){
+                    $this->api_model->charu(array('area_name'=>$district,'district_name'=>$city,'province_name'=>$province));
+                }
+            }
+            //天气信息查询失败
+            $this->response(array('message' => 401), 200);
+        }
+
+        if(isset($area_del)){
+            $data['pm'] = $area_del[0]['pm'];
+            $data['aqi'] = $area_del[0]['aqi'];
+        }else if(isset($area)){
+            $data['pm'] = $area[0]['pm'];
+            $data['aqi'] = $area[0]['aqi'];
+        }else{
+            //pm信息查询失败
+            $this->response(array('message' => 402), 200);
+        }
+
+        //返回值
+        if($data){
+            $this->response(array('result'=>$data,'message' => 200), 200);
+        }else{
+            $this->response(array('message' => 404), 200);
+        }
     }
 }

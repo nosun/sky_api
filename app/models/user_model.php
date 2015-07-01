@@ -5,8 +5,8 @@ Class User_model extends CI_Model{
     public function __construct() {
         parent::__construct();
         $this->load->database();
-        $this->tb_user='user';
-	    $this->tb_device_wxuser='device_wxuser';
+        $this->tb_user = 'user';
+        $this->tb_device_wxuser =$this->db->dbprefix('device_wxuser');
         $this->load->helper('check');
     }
 
@@ -79,11 +79,16 @@ Class User_model extends CI_Model{
         return $response;
     }
 
-    public function pipei($openid,$device_id){
+    public function getWxuser($openid,$device_id){
         return $this->db->from($this->tb_device_wxuser)->where('open_id',$openid)->where('device_id',$device_id)->get()->row();
     }
 
-    public function bangding($array){
+    public function addBangding($array){
         $this->db->insert($this->tb_device_wxuser,$array);
+    }
+
+    public function delRelieve($id){
+        $strSql = 'delete from '.$this->tb_device_wxuser.' where id = '.$id;
+        $this->db->query($strSql);
     }
 }

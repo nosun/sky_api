@@ -11,6 +11,7 @@ Class Device_model extends CI_Model{
         $this->tb_mac =$this->db->dbprefix('product_mac');
         $this->tb_sn =$this->db->dbprefix('product_sn');
         $this->tb_product =$this->db->dbprefix('product');
+        $this->tb_app =$this->db->dbprefix('app');
         $this->load->helper('check');
     }
 
@@ -33,8 +34,8 @@ Class Device_model extends CI_Model{
         if($result){
             $data = $result[0];
             $this->load->model('redis_model');
-            $data['device_online'] = $this->redis_model->getOnline($data['device_mac']);
-            $device_data           = $this->redis_model->getDevice($data['device_mac']);
+            $data['device_online'] = $this->redis_model->getDeviceAttr($data['device_mac'],'online');
+            $device_data           = $this->redis_model->getDeviceData($data['device_mac']);
             if($device_data) $data['device_data'] = $device_data;
         }else{
             return 0;
@@ -104,11 +105,11 @@ Class Device_model extends CI_Model{
         }else{
             if(true == $client->send($data)){
                 $result = 200; //send ok
-                //$client->close();
             }else{
                 $result = 501; //send fail
             }
         }
+        $client->close();
         return $result;
     }
 
@@ -140,7 +141,20 @@ Class Device_model extends CI_Model{
         }
         return $product_id;
     }
-     public function getidbysn($sn){
-	return $this->db->from($this->tb_device)->where('device_sn',$sn)->order_by('device_id','desc')->limit(1)->get()->row();
+
+    public function getAppId($product_id){
+        $query = $this->db->select('app_id,pid')->get_where($this->tb_product,array('product_id'=>$product_id));
+        $result = $query->result_array();
+        return $result;
+    }
+
+    public function getApp($app_id){
+        $query = $this->db->select('app_name')->get_where($this->tb_app,array('app_id'=>$app_id));
+        $result = $query->result_array();
+        return $result;
+    }
+
+    public function getIdBySn($sn){
+	    return $this->db->from($this->tb_device)->where('device_sn',$sn)->order_by('device_id','desc')->limit(1)->get()->row();
     }
 }

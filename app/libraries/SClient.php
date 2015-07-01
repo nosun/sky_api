@@ -4,7 +4,7 @@ class SClient {
 
     public $client;
     public function __construct(){
-        $this->client = new swoole_client(SWOOLE_SOCK_UDP);;
+        $this->client = new swoole_client(SWOOLE_SOCK_UDP);
     }
 
     public function connect(){
@@ -21,8 +21,8 @@ class SClient {
         return $result;
     }
 
-//    public function close(){
-//        $this->client->close();
-//    }
+    public function close(){
+        $this->client->close();
+    }
 
 }
