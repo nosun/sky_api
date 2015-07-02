@@ -43,7 +43,7 @@ Class Api_model extends CI_Model{
     }
 
     public function chaxun_log_sk($data,$area_name){
-        $sql = "select $data from $this->tb_weather_log_sk where $area_name order by updatetime desc";
+        $sql = "select $data from $this->tb_weather_log_sk where $area_name order by settime desc";
         $result= $this->db->query($sql)->result_array();
         return $result;
     }

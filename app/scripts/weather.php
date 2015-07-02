@@ -83,7 +83,7 @@ function caiji($bu = null,$cishu = 0){
                 }else{
                     $updatetime = strtotime(date('Y-m-d', time()) . ' ' . $time) ? strtotime(date('Y-m-d', time()) . ' ' . $time) : time();
                 }
-                $insert .= '("' . $area_name . '",' . $area_id . ',"' . $temperature . '","' . $wind_direct . '","' . $wind_power . '","' . $humidity . '",' . $updatetime . '","'.$settime.'"),';
+                $insert .= '("' . $area_name . '",' . $area_id . ',"' . $temperature . '","' . $wind_direct . '","' . $wind_power . '","' . $humidity . '","' . $updatetime . '","'.$settime.'"),';
                 $sign .= '+';
             } else {
                 $sign .= '-';
@@ -94,6 +94,7 @@ function caiji($bu = null,$cishu = 0){
         $insert{strlen($insert) - 1} = ';';
         $sql = 'insert into '.$config['tb_weather_log'].' (area_name,area_id,temperature,wind_direct,wind_power,humidity,updatetime,settime)
       values ' . $insert;
+
         $r = $mysqli->query($sql);
         if ($r) {
             $log = $sign . ' ' . date('Y-m-d h:i:s', time()) . ' ' . ($k) . "page finished\n";

@@ -385,6 +385,10 @@ class Api extends REST_Controller
 
         $device['update_time']   = time();
 
+        if(empty($device['district'])){
+            $device['district'] = null;
+        }
+
         $this->load->model('device_model');
         $result=$this->device_model->updateDevice($device,$condition);
 
@@ -503,13 +507,14 @@ class Api extends REST_Controller
     }
 
     public function appHost_get(){
-        $app_id = $this->uri->segment('3');
-        if(empty($app_id)){
+        $app_id       = $this->uri->segment('3');
+        $version_code = $this->uri->segment('4');
+        if(empty($app_id) || empty($version_code)){
             $this->response(array('message'=>400), 200);
         }
 
         $this->load->model('service_model');
-        $result = $this->service_model->getHost($app_id);
+        $result = $this->service_model->getHost($app_id,$version_code);
 
         if(!empty($result)) {
             $this->response(array('result'=>$result[0],'message' => 200), 200);
@@ -730,9 +735,10 @@ class Api extends REST_Controller
         $strprovince=str_replace($array,'',$province);
         $strcity=str_replace($array,'',$city);
         $strdistrict=str_replace($array,'',$district);
-        if(!empty($district)){
-            $area_v2 = $this->api_model->chaxun_area_v2('area_id,area_name,district_name,province_name',"area_name = '$strdistrict' and district_name = '$strcity' and province_name = '$strprovince'");
-        }else{
+
+        $area_v2 = $this->api_model->chaxun_area_v2('area_id,area_name,district_name,province_name',"area_name = '$strdistrict' and district_name = '$strcity' and province_name = '$strprovince'");
+        
+        if(empty($area_v2)){
             $area_v2 = $this->api_model->chaxun_area_v2('area_id,area_name,district_name,province_name',"area_name = '$strcity' and district_name = '$strcity' and province_name = '$strprovince'");
         }
 

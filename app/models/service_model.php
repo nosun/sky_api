@@ -21,10 +21,10 @@ Class Service_model extends CI_Model{
     }
 
 
-    public function getHost($app_id){
+    public function getHost($app_id,$version_code){
         $this->db->select('server_login,server_api,server_mq');
-        $query=$this->db->get_where($this->tb_app,array('app_id' => $app_id));
-        $result=resultFilter($query->result_array());
+        $query  = $this->db->limit(1)->get_where($this->tb_app_version,array('app_id' => $app_id,'version_code' => $version_code));
+        $result = resultFilter($query->result_array());
         return $result;
     }
 
