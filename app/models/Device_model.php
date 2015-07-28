@@ -33,14 +33,14 @@ Class Device_model extends CI_Model{
         if($result){
             $data = $result[0];
             $this->load->model('redis_model');
-            $data['device_online'] = $this->redis_model->getOnline($data['device_mac']);
-            $device_data           = $this->redis_model->getDevice($data['device_mac']);
+            $data['device_online'] = $this->redis_model->getDeviceAttr($data['device_mac'],'online');
+            $device_data           = $this->redis_model->getDeviceData($data['device_mac']);
             if($device_data) $data['device_data'] = $device_data;
         }else{
             return 0;
         }
         //var_dump($data);die;
-            return paraFilter($data);
+        return paraFilter($data);
     }
 
     // 设备是否在线，设备的当前状态，需要通过redis查询
@@ -104,11 +104,11 @@ Class Device_model extends CI_Model{
         }else{
             if(true == $client->send($data)){
                 $result = 200; //send ok
-                $client->close();
             }else{
                 $result = 501; //send fail
             }
         }
+        $client->close();
         return $result;
     }
 
