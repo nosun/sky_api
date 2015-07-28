@@ -60,7 +60,7 @@ function caiji($bu = null,$cishu = 0){
         $sign = '';
         $fail = '';
         while ($area = $result->fetch_array(MYSQLI_ASSOC)) {
-            $date = date('Ymdhi');
+            $date = date('YmdHi', time());
             $public_key = ''.$config['url'].'?areaid='.$area['weather_api_key'].'&type=observe&date='.$date.'&appid='.$config['appid'].'';
             $key = urlencode(base64_encode(hash_hmac('sha1',$public_key,$config['private_key'],TRUE)));
             $url = ''.$config['url'].'?areaid='.$area['weather_api_key'].'&type=observe&date='.$date.'&appid=0bd4a7&key='.$key.'';
@@ -73,10 +73,15 @@ function caiji($bu = null,$cishu = 0){
                 $wind_power = array_values($json[0])[3];
                 $humidity = array_values($json[0])[1];
                 $time = array_values($json[0])[4];
+		$settime = time();
                 $area_name = $area['weather_api_name'];
                 $area_id = (int)$area['weather_api_key'];
-                $updatetime = strtotime(date('Y-m-d', time()) . ' ' . $time) ? strtotime(date('Y-m-d', time()) . ' ' . $time) : time();
-                $insert .= '("' . $area_name . '",' . $area_id . ',"' . $temperature . '","' . $wind_direct . '","' . $wind_power . '","' . $humidity . '",' . $updatetime . '),';
+                if($time >= '23:00' && $time <= '23:59' && date('H:i', time()) >='00:00' && date('H:i', time()) <='01:00'){
+                    $updatetime = strtotime(date('Y-m-d', time()-86400) . ' ' . $time) ? strtotime(date('Y-m-d', time()-86400) . ' ' . $time) : time();
+                }else{
+                    $updatetime = strtotime(date('Y-m-d', time()) . ' ' . $time) ? strtotime(date('Y-m-d', time()) . ' ' . $time) : time();
+                }
+                    $insert .= '("' . $area_name . '",' . $area_id . ',"' . $temperature . '","' . $wind_direct . '","' . $wind_power . '","' . $humidity . '","' . $updatetime . '","'.$settime.'"),';
                 $sign .= '+';
             } else {
                 $sign .= '-';
@@ -85,7 +90,7 @@ function caiji($bu = null,$cishu = 0){
         }
 
         $insert{strlen($insert) - 1} = ';';
-        $sql = 'insert into '.$config['tb_weather_log'].' (area_name,area_id,temperature,wind_direct,wind_power,humidity,updatetime)
+        $sql = 'insert into '.$config['tb_weather_log'].' (area_name,area_id,temperature,wind_direct,wind_power,humidity,updatetime,settime)
       values ' . $insert;
         $r = $mysqli->query($sql);
         if ($r) {

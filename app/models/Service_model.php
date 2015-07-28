@@ -15,7 +15,7 @@ Class Service_model extends CI_Model{
 
     public function getLatestApp($condition){
         $this->db->select('*');
-        $query=$this->db->order_by('version_code','desc')->limit(1,0)->get_where($this->tb_app_version,$condition);
+        $query=$this->db->where('version_update_type != ','1')->order_by('version_code','desc')->limit(1,0)->get_where($this->tb_app_version,$condition);
         $result=resultFilter($query->result_array());
         return $result;
     }
@@ -28,6 +28,13 @@ Class Service_model extends CI_Model{
         return $result;
     }
 
+    public function getHostByVersion($app_id,$version_code){
+        $this->db->select('server_login,server_api,server_mq');
+        $query  = $this->db->get_where($this->tb_app_version,array('app_id' => $app_id,'version_code' => $version_code));
+        $result = resultFilter($query->result_array());
+        return $result;
+    }
+    
     public function getCompany($condition){
         $this->db->select('*');
         $query=$this->db->get_where($this->tb_company,$condition);

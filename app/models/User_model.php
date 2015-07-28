@@ -6,7 +6,6 @@ Class User_model extends CI_Model{
         parent::__construct();
         $this->load->database();
         $this->tb_user='user';
-	$this->tb_device_wxuser='device_wxuser';
         $this->load->helper('check');
     }
 
@@ -30,7 +29,7 @@ Class User_model extends CI_Model{
         $query=$this->db->get_where($this->tb_user,$user);
         $result=$query->result();
         $passwd = sha1($passwd . $result[0]->salt);
-        if($user['user_id']){
+        if(isset($user['user_id'])){
             $this->db->where('user_id', $user['user_id']);
         }else{
             $this->db->where('login_id', $user['login_id'])->where('app_id',$user['app_id']);

@@ -19,7 +19,7 @@ class Redis_Model  extends CI_Model {
         return $this->redis->exists($key);
     }
 
-    public function getDevice($key,$field){
+    public function getDevice($key){
         return $this->redis->hGetAll(self::$prefix.self::$dv_data.$key);
     }
 

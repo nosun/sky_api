@@ -1,0 +1,6 @@
+/app/config/
+/app/logs/
+/uploads
+/app/logs/
+/system/
+.htaccess

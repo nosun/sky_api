@@ -309,14 +309,10 @@ class Api extends REST_Controller
             $this->response(array('message'=>400),200);
         }
 
-        if(!in_array($type,array('mac','sn','id','link'))){
+        if(!in_array($type,array('mac','sn','id'))){
             $this->response(array('message'=>400),200);
         }
         $type = 'device_'.$type;
-
-//        if($type == "link"){
-//            $value = urlencode($value);
-//        }
 
         $condition=array( $type => $value );
 
@@ -340,7 +336,7 @@ class Api extends REST_Controller
         $result=$this->device_model->getDeviceByUser($user_id);
 
         if($result){
-            $this->response(array('result' => $result,'message' => 200), 200);
+            $this->response(array('result' => $result,'message' => 200,'time'=>time()), 200);
         }else{
             $this->response(array('message' => 404), 200);
         }
@@ -378,6 +374,10 @@ class Api extends REST_Controller
         if($this->put('pm_id'))         $device['pm_id']        = $this->put('pm_id');
 
         $device['update_time']   = time();
+
+	if(empty($device['district'])){
+            $device['district'] = null;
+        }
 
         $this->load->model('device_model');
         $result=$this->device_model->updateDevice($device,$condition);
@@ -497,13 +497,21 @@ class Api extends REST_Controller
     }
 
     public function appHost_get(){
-        $app_id = $this->uri->segment('3');
+        $app_id       = $this->uri->segment('3');
+        $version_code = $this->uri->segment('4');
+	
         if(empty($app_id)){
             $this->response(array('message'=>400), 200);
         }
-
+	
         $this->load->model('service_model');
-        $result = $this->service_model->getHost($app_id);
+
+        if(!empty($version_code)){
+            $result = $this->service_model->getHostByVersion($app_id,$version_code);
+        }else{
+            $result = $this->service_model->getHost($app_id);
+        }
+
 
         if(!empty($result)) {
             $this->response(array('result'=>$result[0],'message' => 200), 200);
@@ -519,7 +527,7 @@ class Api extends REST_Controller
         }
 
         $this->load->model('service_model');
-        $result=$this->service_model->getCompany(array('company_id'=>$company_id));
+        $result=$this->service_model->getCompany(array('id'=>$company_id));
 
         if($result) {
             $this->response(array('result'=>$result[0],'message' => 200), 200);
@@ -548,100 +556,7 @@ class Api extends REST_Controller
         }
     }
 
-    public function wpm_post(){
-        $province  = $this->post('province');
-        $city      = $this->post('city');
-        $district  = $this->post('district');
-        $this->load->model('api_model');
 
-        if(empty($province) || empty($city) ){
-            $this->response(array('message'=>400),200);
-        }
-
-        //根据城市查询pm
-        $area = $this->api_model->chaxun_air_log('round(avg(aqi)) as pm',"area_name = '$city'");
-        //上边没有查出来时，对城市名称处理后进行查询
-        if(!empty($area)){
-            $array = array('省','市','特别行政区','自治区','区','县',);
-            $str=str_replace($array,'',$city);
-            $area_del = $this->api_model->chaxun_air_log('round(avg(aqi)) as pm',"area_name like '$str'");
-        }
-
-        //根据地区查询天气
-        $count ='';
-        $area_sk = $this->api_model->chaxun_log_sk('temperature,wind_direct,wind_power,humidity',isset($district)?"area_name = '$district'":"area_name ='$city'");
-        //没查出结果，就对地区名处理后查询，并在错误地区中插入一条不重复记录
-        if(!$area_sk){
-            $array = array('省','市','特别行政区','自治区','区','县',);
-            $strcunty=str_replace($array,'',$district);
-            $strcity=str_replace($array,'',$city);
-            $area_sk_del = $this->api_model->chaxun_log_sk('temperature,wind_direct,wind_power,humidity',isset($strcunty)?"area_name like '%$strcunty%'":"area_name like '%$strcity%'");
-            $count = count($area_sk_del);
-
-            if(!empty($district)){
-                $area_error = $this->api_model->chaxun_area_error("area_name = '$district'");
-                if(empty($area_error)){
-                    $this->api_model->charu(array('area_name'=>$district,'district_name'=>$city,'province_name'=>$province));
-                }
-            }
-        }
-
-        //如果查出的记录数多于两条，再根据城市和省市名称判断，都一样就用第一条。
-        if(count($area_sk) >= 2 ||  $count>= 2){
-            if(isset($strcunty) || isset($strcity)){
-                $area_v2 = $this->api_model->chaxun_area_v2('area_id,area_name,district_name,province_name',isset($strcunty)?"area_name like '%$strcunty%'":"area_name like '%$strcity%'");
-            }else{
-                $area_v2 = $this->api_model->chaxun_area_v2('area_id,area_name,district_name,province_name',isset($district)?"area_name = '$district'":"area_name = '$city'");
-            }
-
-            foreach($area_v2 as $v){
-                if(($v['district_name'] == $city || $v['district_name'] == str_replace($array,'',$city)) && ($v['province_name'] == $province || $v['province_name'] == str_replace($array,'',$province))){
-                    $id = $v['area_id'];
-                    $area_id = $this->api_model->chaxun_log_sk('temperature,wind_direct,wind_power,humidity',"area_id = '$id'");
-                }
-            }
-        }
-
-        //将查出的结果放入数组中
-        if(!empty($area_id)){
-            $data = array('temperature' =>$area_id[0]['temperature'],
-                //'wind_direct' => $area_id[0]['wind_direct'],
-                //'wind_power' => $area_id[0]['wind_power'],
-                'humidity' => $area_id[0]['humidity']
-            );
-        }else if(!empty($area_sk_del)){
-            $data = array('temperature' =>$area_sk_del[0]['temperature'],
-                //'wind_direct' => $area_sk_del[0]['wind_direct'],
-                //'wind_power' => $area_sk_del[0]['wind_power'],
-                'humidity' => $area_sk_del[0]['humidity']
-            );
-        }else if(!empty($area_sk)){
-            $data = array('temperature' =>$area_sk[0]['temperature'],
-                //'wind_direct' => $area_sk[0]['wind_direct'],
-                //'wind_power' => $area_sk[0]['wind_power'],
-                'humidity' => $area_sk[0]['humidity']
-            );
-        }else{
-            //天气信息查询失败
-            $this->response(array('message' => 401), 200);
-        }
-
-        if(isset($area_del)){
-            $data['pm'] = $area_del[0]['pm'];
-        }else if(isset($area)){
-            $data['pm'] = $area[0]['pm'];
-        }else{
-            //pm信息查询失败
-            $this->response(array('message' => 402), 200);
-        }
-
-        //返回值
-        if($data){
-            $this->response(array('result'=>$data,'message' => 200), 200);
-        }else{
-            $this->response(array('message' => 404), 200);
-        }
-    }
 
     public function deviceMac_Post(){
         $mac  = $this->post('mac');
@@ -732,4 +647,75 @@ class Api extends REST_Controller
         }
     }
 
+    public function wpm_post(){
+        $province  = $this->post('province');
+        $city      = $this->post('city');
+        $district  = $this->post('district');
+        $this->load->model('api_model');
+
+        if(empty($province) || empty($city) ){
+            $this->response(array('message'=>400),200);
+        }
+        $array = array('省','市','特别行政区','自治区','区','县',);
+        //根据城市查询pm
+        $area = $this->api_model->chaxun_air_log('round(avg(pm25)) as pm,round(avg(aqi)) as aqi',"area_name = '$city'");
+        //上边没有查出来时，对城市名称处理后进行查询
+        if(!empty($area)){
+            $str=str_replace($array,'',$city);
+            $area_del = $this->api_model->chaxun_air_log('round(avg(pm25)) as pm,round(avg(aqi)) as aqi',"area_name like '$str'");
+        }
+
+        //根据省市区查询area_id
+        $strprovince=str_replace($array,'',$province);
+        $strcity=str_replace($array,'',$city);
+        $strdistrict=str_replace($array,'',$district);
+
+        $area_v2 = $this->api_model->chaxun_area_v2('area_id,area_name,district_name,province_name',"area_name = '$strdistrict' and district_name = '$strcity' and province_name = '$strprovince'");
+        
+        if(empty($area_v2)){
+            $area_v2 = $this->api_model->chaxun_area_v2('area_id,area_name,district_name,province_name',"area_name = '$strcity' and district_name = '$strcity' and province_name = '$strprovince'");
+        }
+
+        foreach($area_v2 as $v){
+            $id = $v['area_id'];
+            $area_id = $this->api_model->chaxun_log_sk('temperature,wind_direct,wind_power,humidity',"area_id = '$id'");
+        }
+
+        //将查出的结果放入数组中
+        if(!empty($area_id)){
+            $data = array(
+                'temperature' =>$area_id[0]['temperature'],
+                'humidity' => $area_id[0]['humidity']
+            );
+        }
+
+        else{
+            if(!empty($district)){
+                $area_error = $this->api_model->chaxun_area_error("area_name = '$district'");
+                if(empty($area_error)){
+                    $this->api_model->charu(array('area_name'=>$district,'district_name'=>$city,'province_name'=>$province));
+                }
+            }
+            //天气信息查询失败
+            $this->response(array('message' => 401), 200);
+        }
+
+        if(isset($area_del)){
+            $data['pm'] = $area_del[0]['pm'];
+            $data['aqi'] = $area_del[0]['aqi'];
+        }else if(isset($area)){
+            $data['pm'] = $area[0]['pm'];
+            $data['aqi'] = $area[0]['aqi'];
+        }else{
+            //pm信息查询失败
+            $this->response(array('message' => 402), 200);
+        }
+
+        //返回值
+        if($data){
+            $this->response(array('result'=>$data,'message' => 200), 200);
+        }else{
+            $this->response(array('message' => 404), 200);
+        }
+    }
 }
